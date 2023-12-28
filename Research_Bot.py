@@ -158,7 +158,7 @@ def Strategy(passcoin):
     rsi = float(passcoin.dataframe['RSI'].iloc[[-1]].iloc[0])
     macdhist = float(passcoin.dataframe['Macdhist'].iloc[[-1]].iloc[0])
     adx = float(passcoin.dataframe['ADX'].iloc[[-1]].iloc[0])
-    percentMacd = float(passcoin.dataframe['Macdhist'].max()) / 100 * 15
+    percentMacd = float(passcoin.dataframe['Macdhist'].max()) / 100 * 10
     adxmo = float(passcoin.dataframe['ADX'].iloc[[-2]].iloc[0])
     pastcheckmacd = float(passcoin.dataframe['Macdhist'].iloc[[-4]].iloc[0])
     if macdhist >= -percentMacd and macdhist <= percentMacd and rsi >= 15 and rsi <= 30 and adx > adxmo and OnPosition == False and pastcheckmacd <= 0:
