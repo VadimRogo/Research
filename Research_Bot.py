@@ -50,6 +50,7 @@ class ticket:
         self.precision = precision
         self.sold = False
         self.percent = price / 100
+        self.lenoflife = 0
 
 def get_history_data(coin):
     global result
@@ -154,6 +155,7 @@ def sell(ticket):
             ticket.sold = True 
             balance = float(client.get_asset_balance(asset='USDT')['free'])
             balances.append(balance)
+            sendSold(ticket.symbol)
         else:
             print(f"We can't sell that {ticket.symbol}")
             ticket.sold = True
@@ -175,6 +177,7 @@ def errorSell(ticket, quantity):
             )
         print('Sold before error', ticket.symbol)
         ticket.sold = True
+        sendSold(ticket.symbol)
         balance = float(client.get_asset_balance(asset='USDT')['free'])
         balances.append(balance)
     except Exception as E:
@@ -191,12 +194,14 @@ def errorSell(ticket, quantity):
                     quantity=quantity
                 )
                 print('sold before error error')
+                sendSold(ticket.symbol)
                 break
             except:
                 counter += 1
                 if counter == 5:
                     print('We lose all')
                     print(f'Error qty {quantity}, qty that we have {balance_coin}')
+                    sendLose(ticket.symbol)
                     ticket.sold = True
                     break
 
@@ -218,8 +223,9 @@ def CheckTickets(symbol):
     price = float(passcoin.dataframe['Close'].iloc[[-1]].iloc[0])
     rsi = float(passcoin.dataframe['RSI'].iloc[[-1]].iloc[0])
     for ticket in tickets:
+        ticket.lenoflife += 1
         if symbol == ticket.symbol:
-            if ticket.sold == False and OnPosition == True:
+            if ticket.sold == False and OnPosition == True and ticket.lenoflife % 10 == 0:
                 print(f'Wait {ticket.takeprofit} or {ticket.stoploss} price now {price}')
             if ticket.takeprofit < price and rsi >= 20 and rsi <= 65 and ticket.sold == False and OnPosition == True:
                 ticket.takeprofit = ticket.takeprofit + ticket.percent
