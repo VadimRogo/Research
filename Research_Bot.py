@@ -30,7 +30,8 @@ def sendBought(symbol, takeprofit, stoploss, price):
 def sendSold(symbol):
     bot.send_message(id, f"We sold {symbol}", parse_mode='Markdown')
 
-
+def sendLose(symbol):
+    bot.send_message(id, f"We fucked, you need to sell that coin NOW {symbol}")
 
 
 
@@ -179,10 +180,11 @@ def errorSell(ticket, quantity):
     except Exception as E:
         print(ticket.symbol)
         print("Okey it doesn't work")
-        counter = 0 
+        counter = 0
+        balance_coin = float(client.get_asset_balance(asset=f"{ticket.symbol.replace('USDT', '')}")['free'])
         while True:
             try:
-                quantity = math.floor(quantity * (10 ** ticket.precision) * 0.99) / (10 ** ticket.precision)
+                quantity = math.floor(balance_coin * (10 ** ticket.precision) * 0.99) / (10 ** ticket.precision)
                 quantity = round(ticket.qty, ticket.precision)
                 order = client.order_market_sell(
                     symbol=ticket.symbol,
@@ -194,6 +196,7 @@ def errorSell(ticket, quantity):
                 counter += 1
                 if counter == 5:
                     print('We lose all')
+                    print(f'Error qty {quantity}, qty that we have {balance_coin}')
                     ticket.sold = True
                     break
 
@@ -232,6 +235,7 @@ def CheckTickets(symbol):
                 
 
 passescoins = []
+balances = []
 coins = ['QNTUSDT', 'SOLUSDT', 'ETHUSDT', 'BNBUSDT', 'DOGEUSDT', 'ADAUSDT', 'LTCUSDT', 'LINKUSDT', 'WOOUSDT', 'MANAUSDT', 'DOTUSDT', 'XRPUSDT', 'GALAUSDT', 'SNXUSDT']
 # coins = ['SOLUSDT']
 for coin in coins:
