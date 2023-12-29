@@ -17,7 +17,7 @@ client = Client(api_key, api_secret)
 info = client.futures_exchange_info()
 
 
-partOfBalance = 10
+partOfBalance = 45
 
 tickets = []
 
