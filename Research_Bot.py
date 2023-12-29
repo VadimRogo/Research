@@ -8,6 +8,7 @@ import datetime
 import time
 import telebot
 from telebot import types
+import math
 
 api_key = 'vOpCInjLU7gnTUgIWNbTYIEQSQ7Da77JyUFVMMYyBFCWRo6dmJzwBBKISiPiERfa'
 api_secret = 'DG984fylA2GxRcNMQYCaxtHILBKxekGTM6wbLB4yn9z4D14CMZOMhacaSkMlVF8y'
@@ -23,8 +24,8 @@ tickets = []
 bot = telebot.TeleBot('6312689394:AAE0wejoCqGdUDprRpXjIc401zCmN21SVl4')
 id = 1660691311
 
-def sendBought(symbol, takeprofit, stoploss):
-    bot.send_message(id, f'We bought {symbol} takeprofit {takeprofit} stoploss {stoploss}', parse_mode='Markdown')
+def sendBought(symbol, takeprofit, stoploss, price):
+    bot.send_message(id, f'We bought {symbol} takeprofit {takeprofit} stoploss {stoploss} price now {price}', parse_mode='Markdown')
 
 def sendSold(symbol):
     bot.send_message(id, f"We sold {symbol}", parse_mode='Markdown')
@@ -137,20 +138,64 @@ def buy(symbol, price):
     x = ticket(symbol, price, qty, precision)
     print(f'Bought {symbol} takeprofit {x.takeprofit} stoploss {x.stoploss} price {x.price}')
     tickets.append(x)
-    sendBought(symbol, x.takeprofit, x.stoploss)
+    sendBought(symbol, x.takeprofit, x.stoploss, x.price)
 
 def sell(ticket):
-    global tickets
-    balance_coin = float(client.get_asset_balance(asset=f"{ticket.symbol.replace('USDT', '')}")['free'])
-    balance_usdt = float(balance_coin) * float(ticket.price)
-    if balance_usdt > 10:
+    try:
+        balance_coin = float(client.get_asset_balance(asset=f"{ticket.symbol.replace('USDT', '')}")['free'])
+        balance_usdt = balance_coin * ticket.price
+        if balance_usdt > 10:
+            order = client.order_market_sell(
+                symbol=ticket.symbol,
+                quantity=ticket.qty
+                )
+            print('Sold ', ticket.symbol)
+            ticket.sold = True 
+            balance = float(client.get_asset_balance(asset='USDT')['free'])
+            balances.append(balance)
+        else:
+            print(f"We can't sell that {ticket.symbol}")
+            ticket.sold = True
+    except Exception as E:
+        balance_coin = float(client.get_asset_balance(asset=f"{ticket.symbol.replace('USDT', '')}")['free'])
+        balance_usdt = balance_coin * ticket.price
+        if balance_usdt > 10:
+            quantity = math.floor(balance_coin * (10 ** ticket.precision) * 0.999) / (10 ** ticket.precision)
+            qunatity = round(ticket.qty, ticket.precision)
+            errorSell(ticket, quantity)
+            balance = float(client.get_asset_balance(asset='USDT')['free'])
+            balances.append(balance)
+
+def errorSell(ticket, quantity):
+    try:
         order = client.order_market_sell(
             symbol=ticket.symbol,
-            quantity=ticket.qty
+            quantity=quantity
             )
-        print('Sold ', ticket.symbol)
-        ticket.sold = True 
-        sendSold(ticket.symbol)
+        print('Sold before error', ticket.symbol)
+        ticket.sold = True
+        balance = float(client.get_asset_balance(asset='USDT')['free'])
+        balances.append(balance)
+    except Exception as E:
+        print(ticket.symbol)
+        print("Okey it doesn't work")
+        counter = 0 
+        while True:
+            try:
+                quantity = math.floor(quantity * (10 ** ticket.precision) * 0.99) / (10 ** ticket.precision)
+                quantity = round(ticket.qty, ticket.precision)
+                order = client.order_market_sell(
+                    symbol=ticket.symbol,
+                    quantity=quantity
+                )
+                print('sold before error error')
+                break
+            except:
+                counter += 1
+                if counter == 5:
+                    print('We lose all')
+                    ticket.sold = True
+                    break
 
 def Strategy(passcoin):
     global balances, OnPosition, tickets
@@ -177,13 +222,14 @@ def CheckTickets(symbol):
                 ticket.takeprofit = ticket.takeprofit + ticket.percent
                 ticket.stoploss = ticket.stoploss + ticket.percent
             elif ticket.takeprofit < price and ticket.sold == False and OnPosition == True:
+                sell(ticket)
                 OnPosition = False
                 ticket.profit = True
-                sell(ticket)
             elif ticket.stoploss > price and ticket.sold == False and OnPosition == True:
+                sell(ticket)
                 OnPosition = False
                 ticket.profit = False
-                sell(ticket)
+                
 
 passescoins = []
 coins = ['QNTUSDT', 'SOLUSDT', 'ETHUSDT', 'BNBUSDT', 'DOGEUSDT', 'ADAUSDT', 'LTCUSDT', 'LINKUSDT', 'WOOUSDT', 'MANAUSDT', 'DOTUSDT', 'XRPUSDT', 'GALAUSDT', 'SNXUSDT']
