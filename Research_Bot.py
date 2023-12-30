@@ -27,8 +27,11 @@ id = 1660691311
 def sendBought(symbol, takeprofit, stoploss, price):
     bot.send_message(id, f'We bought {symbol} takeprofit {takeprofit} stoploss {stoploss} price now {price}', parse_mode='Markdown')
 
-def sendSold(symbol):
-    bot.send_message(id, f"We sold {symbol}", parse_mode='Markdown')
+def sendSold(symbol, profit):
+    if profit == False:
+        bot.send_message(id, f"We sold {symbol} to lose", parse_mode='Markdown')
+    elif profit == True:
+        bot.send_message(id, f"We sold {symbol} to profit", parse_mode='Markdown')
 
 def sendLose(symbol):
     bot.send_message(id, f"We fucked, you need to sell that coin NOW {symbol}")
@@ -155,7 +158,6 @@ def sell(ticket):
             ticket.sold = True 
             balance = float(client.get_asset_balance(asset='USDT')['free'])
             balances.append(balance)
-            sendSold(ticket.symbol)
         else:
             print(f"We can't sell that {ticket.symbol}")
             ticket.sold = True
@@ -177,7 +179,6 @@ def errorSell(ticket, quantity):
             )
         print('Sold before error', ticket.symbol)
         ticket.sold = True
-        sendSold(ticket.symbol)
         balance = float(client.get_asset_balance(asset='USDT')['free'])
         balances.append(balance)
     except Exception as E:
@@ -194,7 +195,6 @@ def errorSell(ticket, quantity):
                     quantity=quantity
                 )
                 print('sold before error error')
-                sendSold(ticket.symbol)
                 break
             except:
                 counter += 1
@@ -202,7 +202,6 @@ def errorSell(ticket, quantity):
                     print('We lose all')
                     print(f'Error qty {quantity}, qty that we have {balance_coin}')
                     sendLose(ticket.symbol)
-                    ticket.sold = True
                     break
 
 def Strategy(passcoin):
@@ -223,21 +222,24 @@ def CheckTickets(symbol):
     price = float(passcoin.dataframe['Close'].iloc[[-1]].iloc[0])
     rsi = float(passcoin.dataframe['RSI'].iloc[[-1]].iloc[0])
     for ticket in tickets:
-        ticket.lenoflife += 1
         if symbol == ticket.symbol:
+            ticket.lenoflife += 1
             if ticket.sold == False and OnPosition == True and ticket.lenoflife % 10 == 0:
                 print(f'Wait {ticket.takeprofit} or {ticket.stoploss} price now {price}')
             if ticket.takeprofit < price and rsi >= 20 and rsi <= 65 and ticket.sold == False and OnPosition == True:
+                print(f'takeprofit is changed from {ticket.takeprofit} to {ticket.takeprofit + ticket.percent}')
                 ticket.takeprofit = ticket.takeprofit + ticket.percent
                 ticket.stoploss = ticket.stoploss + ticket.percent
             elif ticket.takeprofit < price and ticket.sold == False and OnPosition == True:
                 sell(ticket)
                 OnPosition = False
                 ticket.profit = True
+                sendSold(ticket.symbol, ticket.profit)
             elif ticket.stoploss > price and ticket.sold == False and OnPosition == True:
                 sell(ticket)
                 OnPosition = False
                 ticket.profit = False
+                sendSold(ticket.symbol, ticket.profit)
                 
 
 passescoins = []
