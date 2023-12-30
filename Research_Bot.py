@@ -67,7 +67,6 @@ def get_history_data(coin):
     result['SMA_hist'] = result['SMA_50'] - result['SMA_100']
     result['RSI'] = RSI(result['Close'], timeperiod=14)
     result['MACD'], result['Macdsignal'], result['Macdhist'] = MACD(result['Close'], 12, 26, 9)
-    result['MACDDay'], result['MacdsignalDay'], result['MacdhistDay'] = MACD(result['Close'], 360, 720, 81)
     result['STOCH'], result['STOCH_k'] = STOCH(result['Close'], result['High'], result['Low'])
     result['ADX'] = ADX(result['High'], result['Low'], result['Close'], timeperiod = 12)
     make_obj_coin(coin, result)
@@ -83,9 +82,8 @@ def get_data(coin):
         result['SMA_50'] = talib.SMA(result['Close'])
         result['SMA_100'] = talib.SMA(result['Close'], 100)
         result['SMA_hist'] = result['SMA_50'] - result['SMA_100']
-        result['RSI'] = RSI(result['Close'], timeperiod=14)
+        result['RSI'] = RSI(result['Close'], timeperiod = 14)
         result['MACD'], result['Macdsignal'], result['Macdhist'] = MACD(result['Close'], 12, 26, 9)
-        result['MACDDay'], result['MacdsignalDay'], result['MacdhistDay'] = MACD(result['Close'], 360, 720, 81)
         result['STOCH'], result['STOCH_k'] = STOCH(result['Close'], result['High'], result['Low'])
         result['ADX'] = ADX(result['High'], result['Low'], result['Close'], timeperiod = 12)
         append_last_minute(passcoin, result)
@@ -97,12 +95,12 @@ def update_dataframe(dataframe):
     dataframe['SMA_50'] = talib.SMA(dataframe['Close'])
     dataframe['SMA_100'] = talib.SMA(dataframe['Close'], 100)
     dataframe['SMA_hist'] = dataframe['SMA_50'] - dataframe['SMA_100']
-    dataframe['RSI'] = RSI(dataframe['Close'], timeperiod=14)
+    dataframe['RSI'] = RSI(dataframe['Close'], timeperiod = 14)
     dataframe['MACD'], dataframe['Macdsignal'], dataframe['Macdhist'] = MACD(dataframe['Close'], 12, 26, 9)
-    dataframe['MACDDay'], dataframe['MacdsignalDay'], dataframe['MacdhistDay'] = MACD(dataframe['Close'], 360, 720, 81)
     dataframe['STOCH'], dataframe['STOCH_k'] = STOCH(dataframe['Close'], dataframe['High'], dataframe['Low'])
     dataframe['ADX'] = ADX(dataframe['High'], dataframe['Low'], dataframe['Close'], timeperiod = 12)
-    
+
+
 def make_obj_coin(coin, dataframe):
     x = passcoin(coin, dataframe)
     passescoins.append(x)
@@ -129,22 +127,25 @@ def checkPrecision(price, precision):
     return x
 
 def buy(symbol, price):
-    global tickets
-    precision = get_precision(symbol)
-    x = checkPrecision(price, precision)
-    qty = partOfBalance / x
-    qty = round(qty, precision)
-    order = client.create_order(
-        symbol=symbol,
-        side=Client.SIDE_BUY,
-        type=Client.ORDER_TYPE_MARKET,
-        quantity=qty
-    )   
-    x = ticket(symbol, price, qty, precision)
-    print(f'Bought {symbol} takeprofit {x.takeprofit} stoploss {x.stoploss} price {x.price}')
-    tickets.append(x)
-    sendBought(symbol, x.takeprofit, x.stoploss, x.price)
-
+    try:
+        global tickets
+        precision = get_precision(symbol)
+        x = checkPrecision(price, precision)
+        qty = partOfBalance / x
+        qty = round(qty, precision)
+        order = client.create_order(
+            symbol=symbol,
+            side=Client.SIDE_BUY,
+            type=Client.ORDER_TYPE_MARKET,
+            quantity=qty
+        )   
+        x = ticket(symbol, price, qty, precision)
+        print(f'Bought {symbol} takeprofit {x.takeprofit} stoploss {x.stoploss} price {x.price}')
+        tickets.append(x)
+        sendBought(symbol, x.takeprofit, x.stoploss, x.price)
+    except Exception as E:
+        print(E)
+        print(f'ERROR symbol is {symbol}')
 def sell(ticket):
     try:
         balance_coin = float(client.get_asset_balance(asset=f"{ticket.symbol.replace('USDT', '')}")['free'])
